@@ -1,1 +1,18 @@
-
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bulk Music Downloader</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="text/javascript" src="/eel.js"></script>
+</head>
+<body>
+    <div class="app-card">
+        <h2>🎵 Bulk Downloader</h2>
+        <p>Drop your YouTube Music album links here (one link per line):</p>
+        <textarea id="linksInput" placeholder="https://music.youtube.com/playlist?list=..."></textarea>
+        <button id="btn" onclick="runBatch()">Process Batch</button>
+        <div id="status">Status: Waiting for links...</div>
+    </div>
+    <script src="main.js"></script>
+</body>
+</html>
