@@ -1,0 +1,245 @@
+name: Build StreamRipper
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  release:
+    types: [created]
+
+# Creates draft release and attaches all 3 builds automatically
+permissions:
+  contents: write
+
+jobs:
+
+  # ────────────────────────────────────────────────────────────────
+  # WINDOWS — produces StreamRipper-Windows.exe
+  # ────────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Download ffmpeg for Windows
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -OutFile ffmpeg.zip
+          Expand-Archive ffmpeg.zip -DestinationPath ffmpeg_tmp
+          $bin = Get-ChildItem -Recurse -Filter "ffmpeg.exe" ffmpeg_tmp | Select-Object -First 1
+          New-Item -ItemType Directory -Force -Path assets
+          Copy-Item $bin.FullName assets\ffmpeg.exe
+          $ffprobe = Get-ChildItem -Recurse -Filter "ffprobe.exe" ffmpeg_tmp | Select-Object -First 1
+          Copy-Item $ffprobe.FullName assets\ffprobe.exe
+
+      - name: Create placeholder icon
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force -Path assets
+          # Create a minimal valid ICO using Python
+          python -c "
+          from PIL import Image, ImageDraw
+          img = Image.new('RGBA', (256, 256), (9, 11, 16, 255))
+          d = ImageDraw.Draw(img)
+          d.ellipse([40, 40, 216, 216], fill=(0, 229, 255, 255))
+          img.save('assets/icon.ico', format='ICO', sizes=[(256,256),(128,128),(64,64),(32,32),(16,16)])
+          "
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller streamripper.spec --clean --noconfirm
+
+      - name: Rename output
+        shell: powershell
+        run: |
+          Move-Item dist\StreamRipper.exe dist\StreamRipper-Windows.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamRipper-Windows
+          path: dist/StreamRipper-Windows.exe
+
+      - name: Upload to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/StreamRipper-Windows.exe
+
+  # ────────────────────────────────────────────────────────────────
+  # MACOS — produces StreamRipper-macOS.dmg
+  # ────────────────────────────────────────────────────────────────
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install ffmpeg
+        run: brew install ffmpeg
+
+      - name: Create placeholder icon
+        run: |
+          mkdir -p assets
+          python3 -c "
+          from PIL import Image, ImageDraw
+          img = Image.new('RGBA', (1024, 1024), (9, 11, 16, 255))
+          d = ImageDraw.Draw(img)
+          d.ellipse([100, 100, 924, 924], fill=(0, 229, 255, 255))
+          img.save('assets/icon.png')
+          "
+          # Convert PNG to ICNS
+          mkdir -p assets/icon.iconset
+          sips -z 16   16   assets/icon.png --out assets/icon.iconset/icon_16x16.png
+          sips -z 32   32   assets/icon.png --out assets/icon.iconset/icon_16x16@2x.png
+          sips -z 32   32   assets/icon.png --out assets/icon.iconset/icon_32x32.png
+          sips -z 64   64   assets/icon.png --out assets/icon.iconset/icon_32x32@2x.png
+          sips -z 128  128  assets/icon.png --out assets/icon.iconset/icon_128x128.png
+          sips -z 256  256  assets/icon.png --out assets/icon.iconset/icon_128x128@2x.png
+          sips -z 256  256  assets/icon.png --out assets/icon.iconset/icon_256x256.png
+          sips -z 512  512  assets/icon.png --out assets/icon.iconset/icon_256x256@2x.png
+          sips -z 512  512  assets/icon.png --out assets/icon.iconset/icon_512x512.png
+          sips -z 1024 1024 assets/icon.png --out assets/icon.iconset/icon_512x512@2x.png
+          iconutil -c icns assets/icon.iconset -o assets/icon.icns
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller streamripper.spec --clean --noconfirm
+
+      - name: Package as DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "StreamRipper" \
+            --volicon "assets/icon.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "StreamRipper.app" 175 190 \
+            --hide-extension "StreamRipper.app" \
+            --app-drop-link 425 190 \
+            "dist/StreamRipper-macOS.dmg" \
+            "dist/StreamRipper.app" || true
+          # Fallback if create-dmg fails
+          if [ ! -f "dist/StreamRipper-macOS.dmg" ]; then
+            hdiutil create -volname StreamRipper -srcfolder dist/StreamRipper.app -ov -format UDZO dist/StreamRipper-macOS.dmg
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamRipper-macOS
+          path: dist/StreamRipper-macOS.dmg
+
+      - name: Upload to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/StreamRipper-macOS.dmg
+
+  # ────────────────────────────────────────────────────────────────
+  # LINUX — produces StreamRipper-Linux.AppImage
+  # (also works on ChromeOS via Linux environment)
+  # ────────────────────────────────────────────────────────────────
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fuse libfuse2 patchelf desktop-file-utils
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Create placeholder icon
+        run: |
+          mkdir -p assets
+          python3 -c "
+          from PIL import Image, ImageDraw
+          img = Image.new('RGBA', (256, 256), (9, 11, 16, 255))
+          d = ImageDraw.Draw(img)
+          d.ellipse([40, 40, 216, 216], fill=(0, 229, 255, 255))
+          img.save('assets/icon.png')
+          "
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller streamripper.spec --clean --noconfirm
+
+      - name: Package as AppImage
+        run: |
+          # Download appimagetool
+          wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage" -O appimagetool
+          chmod +x appimagetool
+
+          # Create AppDir structure
+          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps
+
+          # Copy binary
+          cp dist/StreamRipper AppDir/usr/bin/streamripper
+          cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/streamripper.png
+          cp assets/icon.png AppDir/streamripper.png
+
+          # Desktop entry
+          cat > AppDir/streamripper.desktop << 'EOF'
+          [Desktop Entry]
+          Name=StreamRipper
+          Exec=streamripper
+          Icon=streamripper
+          Type=Application
+          Categories=Audio;Video;Network;
+          Comment=Download music and videos from YouTube, TikTok, Instagram
+          EOF
+
+          cp AppDir/streamripper.desktop AppDir/usr/share/applications/
+
+          # AppRun launcher
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "$HERE/usr/bin/streamripper" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+
+          # Build AppImage (FUSE not available in CI, use --appimage-extract-and-run workaround)
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run AppDir dist/StreamRipper-Linux.AppImage || \
+          ARCH=x86_64 ./appimagetool AppDir dist/StreamRipper-Linux.AppImage
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: StreamRipper-Linux
+          path: dist/StreamRipper-Linux.AppImage
+
+      - name: Upload to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/StreamRipper-Linux.AppImage

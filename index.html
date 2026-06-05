@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StreamRipper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/app.css"/>
+</head>
+<body>
+
+<!-- ── BACKGROUND GRID ── -->
+<div class="bg-grid"></div>
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+  <div class="logo">
+    <span class="logo-icon">▼</span>
+    <span class="logo-text">Stream<strong>Ripper</strong></span>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-btn active" data-panel="search">
+      <span class="nav-icon">⌕</span> Search
+    </button>
+    <button class="nav-btn" data-panel="url">
+      <span class="nav-icon">⊕</span> Add URL
+    </button>
+    <button class="nav-btn" data-panel="queue">
+      <span class="nav-icon">≡</span> Queue
+      <span class="badge" id="badge-queue">0</span>
+    </button>
+    <button class="nav-btn" data-panel="settings">
+      <span class="nav-icon">⚙</span> Settings
+    </button>
+  </nav>
+
+  <div class="sidebar-stats">
+    <div class="stat-row"><span>Downloaded</span><span id="stat-done">0</span></div>
+    <div class="stat-row"><span>Failed</span><span id="stat-failed">0</span></div>
+    <div class="stat-row"><span>In Queue</span><span id="stat-pending">0</span></div>
+  </div>
+
+  <div class="downloads-path" id="dl-path-display">
+    <span class="path-label">Saving to</span>
+    <span class="path-value" id="dl-path-text">Loading…</span>
+  </div>
+</aside>
+
+<!-- ── MAIN CONTENT ── -->
+<main class="main">
+
+  <!-- SEARCH PANEL -->
+  <section class="panel active" id="panel-search">
+    <div class="panel-header">
+      <h1>Search <span class="accent">Music & Video</span></h1>
+      <p class="sub">Search YouTube, YouTube Music, find artists, albums, songs</p>
+    </div>
+
+    <div class="search-bar-wrap">
+      <input type="text" id="search-input" class="search-input" placeholder="Artist, album, song, URL…" autocomplete="off"/>
+      <button class="btn-primary" id="search-btn">Search</button>
+    </div>
+
+    <div class="mode-tabs">
+      <button class="mode-tab active" data-mode="audio">🎵 MP3 Audio</button>
+      <button class="mode-tab" data-mode="video">🎬 MP4 Video</button>
+    </div>
+
+    <div id="search-results" class="results-grid"></div>
+    <div id="search-empty" class="empty-state" style="display:none">
+      <div class="empty-icon">⌕</div>
+      <p>Search for any artist, album or song</p>
+    </div>
+    <div id="search-loading" class="loading-state" style="display:none">
+      <div class="spinner"></div><p>Searching…</p>
+    </div>
+  </section>
+
+  <!-- URL PANEL -->
+  <section class="panel" id="panel-url">
+    <div class="panel-header">
+      <h1>Add by <span class="accent">URL</span></h1>
+      <p class="sub">YouTube, YouTube Music, Instagram, TikTok — single or playlist</p>
+    </div>
+
+    <div class="url-form">
+      <div class="form-group">
+        <label>URL(s) — one per line</label>
+        <textarea id="url-input" rows="5" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.tiktok.com/@...&#10;https://www.instagram.com/p/..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group half">
+          <label>Artist (optional)</label>
+          <input type="text" id="url-artist" placeholder="e.g. Drake"/>
+        </div>
+        <div class="form-group half">
+          <label>Album (optional)</label>
+          <input type="text" id="url-album" placeholder="e.g. Certified Lover Boy"/>
+        </div>
+      </div>
+      <div class="mode-tabs" style="margin-bottom:1.5rem">
+        <button class="mode-tab active" data-mode="audio" id="url-mode-audio">🎵 MP3 Audio</button>
+        <button class="mode-tab" data-mode="video" id="url-mode-video">🎬 MP4 Video</button>
+      </div>
+      <button class="btn-primary wide" id="url-add-btn">Add to Queue</button>
+    </div>
+
+    <div class="platform-pills">
+      <span class="pill yt">▶ YouTube</span>
+      <span class="pill ytm">♪ YT Music</span>
+      <span class="pill ig">◈ Instagram</span>
+      <span class="pill tt">⊛ TikTok</span>
+    </div>
+  </section>
+
+  <!-- QUEUE PANEL -->
+  <section class="panel" id="panel-queue">
+    <div class="panel-header">
+      <h1>Download <span class="accent">Queue</span></h1>
+      <div class="queue-actions">
+        <button class="btn-ghost" id="clear-done-btn">Clear Finished</button>
+      </div>
+    </div>
+    <div id="queue-list" class="queue-list">
+      <div class="empty-state" id="queue-empty">
+        <div class="empty-icon">≡</div>
+        <p>Your queue is empty — search for music or add URLs</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS PANEL -->
+  <section class="panel" id="panel-settings">
+    <div class="panel-header">
+      <h1>Settings <span class="accent">&amp; Options</span></h1>
+    </div>
+    <div class="settings-grid">
+      <div class="setting-card">
+        <h3>Audio Quality</h3>
+        <select id="setting-quality" class="setting-select">
+          <option value="128" selected>128 kbps (Small)</option>
+          <option value="192">192 kbps (Standard)</option>
+          <option value="320">320 kbps (High)</option>
+          <option value="0">Best Available</option>
+        </select>
+      </div>
+      <div class="setting-card">
+        <h3>Embed Metadata</h3>
+        <label class="toggle"><input type="checkbox" id="setting-meta" checked/><span class="slider"></span></label>
+        <p>Embed title, artist, album, artwork</p>
+      </div>
+      <div class="setting-card">
+        <h3>Download Thumbnails</h3>
+        <label class="toggle"><input type="checkbox" id="setting-thumb" checked/><span class="slider"></span></label>
+        <p>Save cover art alongside tracks</p>
+      </div>
+      <div class="setting-card">
+        <h3>Skip Duplicates</h3>
+        <label class="toggle"><input type="checkbox" id="setting-dupes" checked/><span class="slider"></span></label>
+        <p>Skip files already downloaded</p>
+      </div>
+      <div class="setting-card full-width">
+        <h3>Downloads Folder</h3>
+        <div class="path-display" id="settings-path">Loading…</div>
+        <p>Structure: Platform / Artist / Album / Track</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ── TOAST CONTAINER ── -->
+<div id="toast-wrap"></div>
+
+<!-- ── ADD TO QUEUE MODAL ── -->
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal">
+    <h2>Add to Queue</h2>
+    <p id="modal-title-display" class="modal-song-title"></p>
+    <div class="form-row">
+      <div class="form-group half">
+        <label>Artist</label>
+        <input type="text" id="modal-artist" placeholder="Auto-detected"/>
+      </div>
+      <div class="form-group half">
+        <label>Album</label>
+        <input type="text" id="modal-album" placeholder="Optional"/>
+      </div>
+    </div>
+    <div class="mode-tabs" style="margin-bottom:1.5rem">
+      <button class="mode-tab active" data-mode="audio" id="modal-mode-audio">🎵 MP3</button>
+      <button class="mode-tab" data-mode="video" id="modal-mode-video">🎬 MP4</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn-primary" id="modal-confirm">Download</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
