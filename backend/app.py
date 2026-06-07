@@ -248,3 +248,28 @@ if __name__ == "__main__":
     timer = threading.Timer(1.2, lambda: webbrowser.open(f"http://127.0.0.1:{port}"))
     timer.start()
     app.run(host="127.0.0.1", port=port, debug=False, threaded=True)
+
+
+# ── Auto-Updater routes ──────────────────────────────────────────────────────
+try:
+    from updater import start_background_check, start_background_download, get_update_state
+    _updater_available = True
+except ImportError:
+    _updater_available = False
+
+@app.route("/api/update/status")
+def update_status():
+    if not _updater_available:
+        return jsonify({"status": "unavailable"})
+    return jsonify(get_update_state())
+
+@app.route("/api/update/install", methods=["POST"])
+def update_install():
+    if not _updater_available:
+        return jsonify({"error": "Updater not available"}), 400
+    start_background_download()
+    return jsonify({"ok": True})
+
+# Kick off update check in background on startup
+if _updater_available:
+    start_background_check()
