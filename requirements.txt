@@ -4,3 +4,5 @@ yt-dlp>=2024.1.1
 mutagen>=1.47.0
 pyinstaller>=6.5.0
 pillow>=10.0.0
+requests>=2.31.0
+packaging>=24.0
