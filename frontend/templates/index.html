@@ -2,206 +2,366 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>StreamRipper</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="/static/css/app.css"/>
 </head>
 <body>
+<canvas id="vizCanvas"></canvas>
+<div class="scanlines"></div>
+<div class="vignette"></div>
 
-<!-- ── BACKGROUND GRID ── -->
-<div class="bg-grid"></div>
-<div class="bg-glow glow-1"></div>
-<div class="bg-glow glow-2"></div>
+<!-- ══ AD BANNER ══ -->
+<div id="ad-banner" class="ad-banner hidden">
+  <span class="ad-pulse"></span>
+  <span id="ad-banner-title" class="ad-banner-title"></span>
+  <span id="ad-banner-msg" class="ad-banner-msg"></span>
+  <a id="ad-banner-cta" class="ad-banner-cta" href="#" target="_blank"></a>
+  <button class="ad-dismiss" onclick="document.getElementById('ad-banner').classList.add('hidden')">✕</button>
+</div>
 
-<!-- ── SIDEBAR ── -->
-<aside class="sidebar">
-  <div class="logo">
-    <span class="logo-icon">▼</span>
-    <span class="logo-text">Stream<strong>Ripper</strong></span>
+<!-- ══ AD POPUP ══ -->
+<div id="ad-popup" class="modal-overlay hidden">
+  <div class="modal-box ad-popup-box">
+    <div id="ad-popup-inner"></div>
+    <button class="ghost-btn" style="margin-top:1rem;width:100%" onclick="document.getElementById('ad-popup').classList.add('hidden')">Close</button>
   </div>
+</div>
 
-  <nav class="nav">
-    <button class="nav-btn active" data-panel="search">
-      <span class="nav-icon">⌕</span> Search
-    </button>
-    <button class="nav-btn" data-panel="url">
-      <span class="nav-icon">⊕</span> Add URL
-    </button>
-    <button class="nav-btn" data-panel="queue">
-      <span class="nav-icon">≡</span> Queue
-      <span class="badge" id="badge-queue">0</span>
-    </button>
-    <button class="nav-btn" data-panel="settings">
-      <span class="nav-icon">⚙</span> Settings
-    </button>
-  </nav>
-
-  <div class="sidebar-stats">
-    <div class="stat-row"><span>Downloaded</span><span id="stat-done">0</span></div>
-    <div class="stat-row"><span>Failed</span><span id="stat-failed">0</span></div>
-    <div class="stat-row"><span>In Queue</span><span id="stat-pending">0</span></div>
-  </div>
-
-  <div class="downloads-path" id="dl-path-display">
-    <span class="path-label">Saving to</span>
-    <span class="path-value" id="dl-path-text">Loading…</span>
-  </div>
-</aside>
-
-<!-- ── MAIN CONTENT ── -->
-<main class="main">
-
-  <!-- SEARCH PANEL -->
-  <section class="panel active" id="panel-search">
-    <div class="panel-header">
-      <h1>Search <span class="accent">Music & Video</span></h1>
-      <p class="sub">Search YouTube, YouTube Music, find artists, albums, songs</p>
+<!-- ══ LOGIN SCREEN ══ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-inner">
+    <div class="ob-logo">
+      <div class="ob-logo-ring"></div>
+      <div class="ob-logo-ring r2"></div>
+      <div class="ob-logo-icon">▼</div>
     </div>
+    <h1 class="ob-title">STREAM<span>RIPPER</span></h1>
+    <p class="ob-sub">Download YouTube · Instagram · TikTok</p>
 
-    <div class="search-bar-wrap">
-      <input type="text" id="search-input" class="search-input" placeholder="Artist, album, song, URL…" autocomplete="off"/>
-      <button class="btn-primary" id="search-btn">Search</button>
-    </div>
-
-    <div class="mode-tabs">
-      <button class="mode-tab active" data-mode="audio">🎵 MP3 Audio</button>
-      <button class="mode-tab" data-mode="video">🎬 MP4 Video</button>
-    </div>
-
-    <div id="search-results" class="results-grid"></div>
-    <div id="search-empty" class="empty-state" style="display:none">
-      <div class="empty-icon">⌕</div>
-      <p>Search for any artist, album or song</p>
-    </div>
-    <div id="search-loading" class="loading-state" style="display:none">
-      <div class="spinner"></div><p>Searching…</p>
-    </div>
-  </section>
-
-  <!-- URL PANEL -->
-  <section class="panel" id="panel-url">
-    <div class="panel-header">
-      <h1>Add by <span class="accent">URL</span></h1>
-      <p class="sub">YouTube, YouTube Music, Instagram, TikTok — single or playlist</p>
-    </div>
-
-    <div class="url-form">
-      <div class="form-group">
-        <label>URL(s) — one per line</label>
-        <textarea id="url-input" rows="5" placeholder="https://www.youtube.com/watch?v=...&#10;https://www.tiktok.com/@...&#10;https://www.instagram.com/p/..."></textarea>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Create Account</button>
       </div>
-      <div class="form-row">
-        <div class="form-group half">
-          <label>Artist (optional)</label>
-          <input type="text" id="url-artist" placeholder="e.g. Drake"/>
-        </div>
-        <div class="form-group half">
-          <label>Album (optional)</label>
-          <input type="text" id="url-album" placeholder="e.g. Certified Lover Boy"/>
-        </div>
+      <div id="auth-name-wrap" style="display:none">
+        <label class="field-label">FULL NAME</label>
+        <input type="text" id="auth-name" class="field-input" placeholder="Your name"/>
       </div>
-      <div class="mode-tabs" style="margin-bottom:1.5rem">
-        <button class="mode-tab active" data-mode="audio" id="url-mode-audio">🎵 MP3 Audio</button>
-        <button class="mode-tab" data-mode="video" id="url-mode-video">🎬 MP4 Video</button>
+      <label class="field-label">EMAIL</label>
+      <input type="email" id="auth-email" class="field-input" placeholder="you@email.com" autocomplete="email"/>
+      <label class="field-label">PASSWORD</label>
+      <input type="password" id="auth-password" class="field-input" placeholder="••••••••"/>
+      <div id="auth-error" class="auth-error hidden"></div>
+      <button class="big-btn" id="auth-submit" onclick="doAuth()">
+        <span id="auth-btn-txt">SIGN IN</span>
+        <div class="btn-shine"></div>
+      </button>
+      <div class="auth-legal">
+        By continuing you agree to our
+        <a href="/terms" class="auth-link">Terms</a> and
+        <a href="/privacy" class="auth-link">Privacy Policy</a>
       </div>
-      <button class="btn-primary wide" id="url-add-btn">Add to Queue</button>
-    </div>
-
-    <div class="platform-pills">
-      <span class="pill yt">▶ YouTube</span>
-      <span class="pill ytm">♪ YT Music</span>
-      <span class="pill ig">◈ Instagram</span>
-      <span class="pill tt">⊛ TikTok</span>
-    </div>
-  </section>
-
-  <!-- QUEUE PANEL -->
-  <section class="panel" id="panel-queue">
-    <div class="panel-header">
-      <h1>Download <span class="accent">Queue</span></h1>
-      <div class="queue-actions">
-        <button class="btn-ghost" id="clear-done-btn">Clear Finished</button>
-      </div>
-    </div>
-    <div id="queue-list" class="queue-list">
-      <div class="empty-state" id="queue-empty">
-        <div class="empty-icon">≡</div>
-        <p>Your queue is empty — search for music or add URLs</p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SETTINGS PANEL -->
-  <section class="panel" id="panel-settings">
-    <div class="panel-header">
-      <h1>Settings <span class="accent">&amp; Options</span></h1>
-    </div>
-    <div class="settings-grid">
-      <div class="setting-card">
-        <h3>Audio Quality</h3>
-        <select id="setting-quality" class="setting-select">
-          <option value="128" selected>128 kbps (Small)</option>
-          <option value="192">192 kbps (Standard)</option>
-          <option value="320">320 kbps (High)</option>
-          <option value="0">Best Available</option>
-        </select>
-      </div>
-      <div class="setting-card">
-        <h3>Embed Metadata</h3>
-        <label class="toggle"><input type="checkbox" id="setting-meta" checked/><span class="slider"></span></label>
-        <p>Embed title, artist, album, artwork</p>
-      </div>
-      <div class="setting-card">
-        <h3>Download Thumbnails</h3>
-        <label class="toggle"><input type="checkbox" id="setting-thumb" checked/><span class="slider"></span></label>
-        <p>Save cover art alongside tracks</p>
-      </div>
-      <div class="setting-card">
-        <h3>Skip Duplicates</h3>
-        <label class="toggle"><input type="checkbox" id="setting-dupes" checked/><span class="slider"></span></label>
-        <p>Skip files already downloaded</p>
-      </div>
-      <div class="setting-card full-width">
-        <h3>Downloads Folder</h3>
-        <div class="path-display" id="settings-path">Loading…</div>
-        <p>Structure: Platform / Artist / Album / Track</p>
-      </div>
-    </div>
-  </section>
-
-</main>
-
-<!-- ── TOAST CONTAINER ── -->
-<div id="toast-wrap"></div>
-
-<!-- ── ADD TO QUEUE MODAL ── -->
-<div class="modal-overlay" id="modal" style="display:none">
-  <div class="modal">
-    <h2>Add to Queue</h2>
-    <p id="modal-title-display" class="modal-song-title"></p>
-    <div class="form-row">
-      <div class="form-group half">
-        <label>Artist</label>
-        <input type="text" id="modal-artist" placeholder="Auto-detected"/>
-      </div>
-      <div class="form-group half">
-        <label>Album</label>
-        <input type="text" id="modal-album" placeholder="Optional"/>
-      </div>
-    </div>
-    <div class="mode-tabs" style="margin-bottom:1.5rem">
-      <button class="mode-tab active" data-mode="audio" id="modal-mode-audio">🎵 MP3</button>
-      <button class="mode-tab" data-mode="video" id="modal-mode-video">🎬 MP4</button>
-    </div>
-    <div class="modal-actions">
-      <button class="btn-ghost" id="modal-cancel">Cancel</button>
-      <button class="btn-primary" id="modal-confirm">Download</button>
     </div>
   </div>
 </div>
 
+<!-- ══ ONBOARDING ══ -->
+<div id="onboarding" class="onboarding-overlay hidden">
+  <div class="onboarding-inner">
+    <h2 class="ob-title" style="margin-bottom:0.5rem">WELCOME TO <span>STREAMRIPPER</span></h2>
+    <p class="ob-sub" style="margin-bottom:2rem">Quick tour before you start</p>
+    <div class="ob-steps">
+      <div class="ob-step active" data-step="0">
+        <div class="ob-step-num">01</div>
+        <div class="ob-step-content">
+          <div class="ob-screen"><div class="ob-screen-inner">
+            <div class="mock-searchbar"><span style="color:var(--cyan)">⌕</span><span id="mockType"></span></div>
+            <div class="mock-results">
+              <div class="mock-result"><div class="mock-thumb"></div><div class="mock-lines"><div class="mock-line w80"></div><div class="mock-line w50"></div></div></div>
+              <div class="mock-result"><div class="mock-thumb"></div><div class="mock-lines"><div class="mock-line w70"></div><div class="mock-line w40"></div></div></div>
+              <div class="mock-result"><div class="mock-thumb"></div><div class="mock-lines"><div class="mock-line w90"></div><div class="mock-line w60"></div></div></div>
+            </div>
+          </div></div>
+          <h3>Search Any Artist or Song</h3>
+          <p>Type a name — results appear instantly from YouTube</p>
+        </div>
+      </div>
+      <div class="ob-step" data-step="1">
+        <div class="ob-step-num">02</div>
+        <div class="ob-step-content">
+          <div class="ob-screen"><div class="ob-screen-inner">
+            <div class="mock-queue">
+              <div class="mock-qitem done"><div class="mock-qbar" style="width:100%"></div><span>✓ Blinding Lights.mp3</span></div>
+              <div class="mock-qitem active"><div class="mock-qbar animated"></div><span>↓ Save Your Tears.mp3</span></div>
+              <div class="mock-qitem pending"><div class="mock-qbar" style="width:0%"></div><span>⏳ Starboy.mp3</span></div>
+            </div>
+          </div></div>
+          <h3>Bulk Queue</h3>
+          <p>Add entire albums — all download automatically with metadata</p>
+        </div>
+      </div>
+      <div class="ob-step" data-step="2">
+        <div class="ob-step-num">03</div>
+        <div class="ob-step-content">
+          <div class="ob-screen"><div class="ob-screen-inner">
+            <div class="mock-platforms">
+              <div class="mock-plat yt">▶ YouTube</div><div class="mock-plat ytm">♪ YT Music</div>
+              <div class="mock-plat ig">◈ Instagram</div><div class="mock-plat tt">⊛ TikTok</div>
+            </div>
+            <div class="mock-formats">
+              <div class="mock-fmt audio">🎵 MP3 only</div>
+              <div class="mock-fmt video">🎬 MP4 only</div>
+            </div>
+          </div></div>
+          <h3>4 Platforms · Strict Format</h3>
+          <p>Choose MP3 or MP4 — only that file downloads, nothing extra</p>
+        </div>
+      </div>
+    </div>
+    <div class="ob-nav">
+      <div class="ob-dots">
+        <span class="ob-dot active" data-dot="0"></span>
+        <span class="ob-dot" data-dot="1"></span>
+        <span class="ob-dot" data-dot="2"></span>
+      </div>
+      <div class="ob-btns">
+        <button class="ob-skip" id="obSkip">Skip</button>
+        <button class="ob-next" id="obNext">Next <span>→</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="app" class="app hidden">
+  <header class="topbar">
+    <div class="topbar-logo">
+      <div class="logo-pulse"></div>
+      <span class="logo-text">STREAM<strong>RIPPER</strong></span>
+      <span class="version-tag">v1.0</span>
+    </div>
+    <nav class="topbar-nav">
+      <button class="tnav active" data-panel="search"><span class="tnav-icon">⌕</span><span>Search</span></button>
+      <button class="tnav" data-panel="url"><span class="tnav-icon">⊕</span><span>Add URL</span></button>
+      <button class="tnav" data-panel="queue"><span class="tnav-icon">≡</span><span>Queue</span><span class="tbadge" id="badge-queue">0</span></button>
+      <button class="tnav" data-panel="logs"><span class="tnav-icon">◎</span><span>Logs</span></button>
+      <button class="tnav" data-panel="settings"><span class="tnav-icon">⚙</span><span>Settings</span></button>
+      <button class="tnav" data-panel="privacy"><span class="tnav-icon">🔒</span><span>Privacy</span></button>
+      <button class="tnav" data-panel="terms"><span class="tnav-icon">📄</span><span>Terms</span></button>
+    </nav>
+    <div class="topbar-right">
+      <div class="topbar-stats">
+        <div class="ts-item"><span id="ts-done">0</span><label>Done</label></div>
+        <div class="ts-sep"></div>
+        <div class="ts-item"><span id="ts-active">0</span><label>Active</label></div>
+        <div class="ts-sep"></div>
+        <div class="ts-item"><span id="ts-fail">0</span><label>Failed</label></div>
+      </div>
+      <div class="user-chip" id="user-chip">
+        <span class="user-dot"></span>
+        <span id="user-name-display">User</span>
+        <button class="logout-btn" onclick="doLogout()">⏏</button>
+      </div>
+    </div>
+    <!-- UPDATE BANNER -->
+    <div id="update-banner" class="update-banner hidden">
+      <span class="ub-pulse"></span>
+      <span class="ub-label">UPDATE AVAILABLE</span>
+      <span class="ub-version" id="ub-version"></span>
+      <div class="ub-progress hidden" id="ub-progress-wrap">
+        <div class="ub-bar" id="ub-bar"></div><span id="ub-pct">0%</span>
+      </div>
+      <button class="ub-btn" id="ub-install-btn">⬇ Install Update</button>
+      <button class="ub-dismiss" id="ub-dismiss">✕</button>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- SEARCH -->
+    <section class="panel active" id="panel-search">
+      <div class="panel-hero">
+        <div class="hero-eq" id="heroEq">
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+          <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="hero-text">
+          <h2>FIND <span class="neon">ANYTHING</span></h2>
+          <p>YouTube · YouTube Music · Instagram · TikTok</p>
+        </div>
+      </div>
+      <div class="search-zone">
+        <div class="search-wrap">
+          <div class="search-glow"></div>
+          <span class="search-icon">⌕</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Artist, album, song, URL…" autocomplete="off" spellcheck="false"/>
+          <button class="search-btn" id="search-btn"><span>SEARCH</span><div class="btn-shine"></div></button>
+        </div>
+        <div class="mode-row">
+          <button class="mode-pill active" data-mode="audio" id="sm-audio">🎵 MP3 Only</button>
+          <button class="mode-pill" data-mode="video" id="sm-video">🎬 MP4 Only</button>
+          <div class="platform-tags">
+            <span class="ptag yt">YouTube</span><span class="ptag ytm">YT Music</span>
+            <span class="ptag ig">Instagram</span><span class="ptag tt">TikTok</span>
+          </div>
+        </div>
+      </div>
+      <div id="search-loading" class="search-loading hidden"><div class="sonar"><div></div><div></div><div></div></div><span>Scanning…</span></div>
+      <div id="search-empty" class="search-empty">
+        <div class="empty-waveform"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <p>Search for any artist, album, or song above</p>
+      </div>
+      <div id="search-results" class="results-grid"></div>
+    </section>
+
+    <!-- URL -->
+    <section class="panel" id="panel-url">
+      <div class="panel-title-bar"><div><h2>ADD BY <span class="neon">URL</span></h2><p>YouTube · YouTube Music · Instagram · TikTok — single videos or entire playlists</p></div></div>
+      <div class="url-grid">
+        <div class="url-card">
+          <label class="field-label">URLs — one per line</label>
+          <textarea id="url-input" class="field-textarea" rows="6" placeholder="https://www.youtube.com/watch?v=&#10;https://www.youtube.com/playlist?list=&#10;https://www.tiktok.com/@artist/video/&#10;https://www.instagram.com/p/"></textarea>
+          <div class="field-row">
+            <div class="field-group"><label class="field-label">Artist <span class="opt">optional</span></label><input type="text" id="url-artist" class="field-input" placeholder="e.g. The Weeknd"/></div>
+            <div class="field-group"><label class="field-label">Album <span class="opt">optional</span></label><input type="text" id="url-album" class="field-input" placeholder="e.g. After Hours"/></div>
+          </div>
+          <div class="mode-row" style="margin-bottom:1.5rem">
+            <button class="mode-pill active" data-mode="audio" id="um-audio">🎵 MP3 Only</button>
+            <button class="mode-pill" data-mode="video" id="um-video">🎬 MP4 Only</button>
+          </div>
+          <button class="big-btn" id="url-add-btn"><span class="bb-icon">+</span> ADD TO QUEUE<div class="btn-shine"></div></button>
+        </div>
+        <div class="url-info-cards">
+          <div class="info-card"><div class="ic-icon yt">▶</div><div><strong>YouTube</strong><p>Videos, playlists, channels</p></div></div>
+          <div class="info-card"><div class="ic-icon ytm">♪</div><div><strong>YouTube Music</strong><p>Songs, albums, artists</p></div></div>
+          <div class="info-card"><div class="ic-icon ig">◈</div><div><strong>Instagram</strong><p>Posts, reels, stories</p></div></div>
+          <div class="info-card"><div class="ic-icon tt">⊛</div><div><strong>TikTok</strong><p>Videos, user profiles</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUEUE -->
+    <section class="panel" id="panel-queue">
+      <div class="panel-title-bar">
+        <div><h2>DOWNLOAD <span class="neon">QUEUE</span></h2><p>Live progress · auto-refreshes every second</p></div>
+        <button class="ghost-btn" id="clear-done-btn">✕ Clear Finished</button>
+      </div>
+      <div id="queue-list" class="queue-list">
+        <div id="queue-empty" class="queue-empty">
+          <div class="qe-bars"><span></span><span></span><span></span><span></span><span></span></div>
+          <p>Queue is empty — search or add URLs to start</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section class="panel" id="panel-logs">
+      <div class="panel-title-bar">
+        <div><h2>DOWNLOAD <span class="neon">LOGS</span></h2><p>Full history · auto-scrolls · color-coded by event type</p></div>
+        <button class="ghost-btn" id="clear-logs-btn">✕ Clear</button>
+      </div>
+      <div class="log-terminal" id="log-terminal">
+        <div class="log-line system" data-time="00:00:00">StreamRipper v1.0 initialized</div>
+        <div class="log-line system" data-time="00:00:00">yt-dlp engine ready · Cloudflare bypass active</div>
+        <div class="log-line system" data-time="00:00:00">Strict format mode: MP3-only or MP4-only per job</div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="panel" id="panel-settings">
+      <div class="panel-title-bar"><h2>SETTINGS <span class="neon">&amp; CONFIG</span></h2></div>
+      <div class="settings-grid">
+        <div class="scard"><div class="scard-header"><span class="scard-icon">🎚</span> Audio Quality</div>
+          <select id="setting-quality" class="sselect">
+            <option value="128" selected>128 kbps — Small Files</option>
+            <option value="192">192 kbps — Standard</option>
+            <option value="320">320 kbps — High Quality</option>
+            <option value="0">Best Available</option>
+          </select>
+        </div>
+        <div class="scard"><div class="scard-header"><span>🏷</span> Embed Metadata</div>
+          <label class="stoggle"><input type="checkbox" id="setting-meta" checked/><span class="stoggle-track"><span class="stoggle-thumb"></span></span></label>
+          <p class="scard-desc">Title, artist, album, artwork embedded into file</p>
+        </div>
+        <div class="scard"><div class="scard-header"><span>🖼</span> Save Thumbnails</div>
+          <label class="stoggle"><input type="checkbox" id="setting-thumb" checked/><span class="stoggle-track"><span class="stoggle-thumb"></span></span></label>
+          <p class="scard-desc">Save cover art as .jpg alongside each track</p>
+        </div>
+        <div class="scard"><div class="scard-header"><span>⛔</span> Skip Duplicates</div>
+          <label class="stoggle"><input type="checkbox" id="setting-dupes" checked/><span class="stoggle-track"><span class="stoggle-thumb"></span></span></label>
+          <p class="scard-desc">Skip files already in your download folder</p>
+        </div>
+        <div class="scard span2"><div class="scard-header"><span>📂</span> Download Location</div>
+          <div class="path-box" id="settings-path">Loading…</div>
+          <p class="scard-desc">Structure: Platform / Artist / Album / Track</p>
+        </div>
+        <div class="scard span2"><div class="scard-header"><span>👤</span> Account</div>
+          <p class="scard-desc" id="settings-account-info">Loading…</p>
+          <button class="ghost-btn" style="margin-top:0.75rem" onclick="doLogout()">⏏ Sign Out</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRIVACY -->
+    <section class="panel" id="panel-privacy">
+      <div class="panel-title-bar"><h2>PRIVACY <span class="neon">POLICY</span></h2></div>
+      <div class="legal-doc">
+        <p class="legal-date">Effective: June 2026</p>
+        <div class="legal-block"><h3>Information We Collect</h3><p>We collect your email address and password (hashed with SHA-256) when you create an account. We automatically collect your IP address, device OS, and browser user agent to detect abuse and understand platform usage.</p></div>
+        <div class="legal-block"><h3>How We Use Your Data</h3><p>Your data authenticates your account and syncs your download history across devices. We may send in-app notifications and promotional messages you can dismiss at any time. We do not sell your data to third parties.</p></div>
+        <div class="legal-block"><h3>Data Storage</h3><p>All account and event data is stored in Cloudflare Workers KV — encrypted at rest on Cloudflare's global network. Event logs are automatically purged after 90 days.</p></div>
+        <div class="legal-block"><h3>Analytics</h3><p>We log download completions, searches, and login events. These logs include IP address and device type but are never shared externally or sold.</p></div>
+        <div class="legal-block"><h3>Cookies & Tokens</h3><p>We store an authentication token in your browser's localStorage to keep you signed in across sessions. No advertising cookies or third-party trackers are used.</p></div>
+        <div class="legal-block"><h3>Your Rights</h3><p>You may request full deletion of your account and all data by emailing privacy@streamripper.app. Core download features work without an account.</p></div>
+        <div class="legal-block"><h3>Children's Privacy</h3><p>StreamRipper is not intended for users under 13. We do not knowingly collect data from children.</p></div>
+        <div class="legal-block"><h3>Contact</h3><p>privacy@streamripper.app</p></div>
+      </div>
+    </section>
+
+    <!-- TERMS -->
+    <section class="panel" id="panel-terms">
+      <div class="panel-title-bar"><h2>TERMS OF <span class="neon">SERVICE</span></h2></div>
+      <div class="legal-doc">
+        <p class="legal-date">Effective: June 2026</p>
+        <div class="legal-block"><h3>Acceptance</h3><p>By installing or using StreamRipper you agree to these Terms. If you disagree, do not use the application.</p></div>
+        <div class="legal-block"><h3>Permitted Use</h3><p>StreamRipper is for personal, non-commercial downloading of publicly accessible media only. You are solely responsible for complying with copyright laws in your jurisdiction.</p></div>
+        <div class="legal-block"><h3>Copyright</h3><p>StreamRipper does not host or redistribute copyrighted content. All media is downloaded directly from third-party platforms via their public interfaces. Users must respect those platforms' terms of service.</p></div>
+        <div class="legal-block"><h3>Account Rules</h3><p>Do not create accounts on behalf of others, share credentials, or create bulk accounts with automated tools.</p></div>
+        <div class="legal-block"><h3>No Warranty</h3><p>StreamRipper is provided "as is" without any warranties of uptime, download success, or compatibility.</p></div>
+        <div class="legal-block"><h3>Limitation of Liability</h3><p>We are not liable for legal consequences from your downloads, data loss, or device damage arising from use of this software.</p></div>
+        <div class="legal-block"><h3>Termination</h3><p>We may suspend or ban accounts that violate these terms at our sole discretion without notice.</p></div>
+        <div class="legal-block"><h3>Contact</h3><p>legal@streamripper.app</p></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal-box">
+    <div class="modal-glow"></div>
+    <h3>ADD TO QUEUE</h3>
+    <div class="modal-song" id="modal-title-display"></div>
+    <div class="field-row">
+      <div class="field-group"><label class="field-label">Artist</label><input type="text" id="modal-artist" class="field-input" placeholder="Auto-detected"/></div>
+      <div class="field-group"><label class="field-label">Album</label><input type="text" id="modal-album" class="field-input" placeholder="Optional"/></div>
+    </div>
+    <div class="mode-row" style="margin-bottom:1.5rem">
+      <button class="mode-pill active" data-mode="audio" id="mm-audio">🎵 MP3 Only</button>
+      <button class="mode-pill" data-mode="video" id="mm-video">🎬 MP4 Only</button>
+    </div>
+    <div class="modal-actions">
+      <button class="ghost-btn" id="modal-cancel">Cancel</button>
+      <button class="big-btn compact" id="modal-confirm">+ DOWNLOAD<div class="btn-shine"></div></button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
 <script src="/static/js/app.js"></script>
 </body>
 </html>
