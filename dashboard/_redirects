@@ -1,0 +1,8 @@
+[build]
+  command   = ""
+  directory = "cloudflare/dashboard"
+
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
