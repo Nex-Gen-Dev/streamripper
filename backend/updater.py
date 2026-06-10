@@ -13,7 +13,7 @@ from pathlib import Path
 from packaging import version as pkg_version
 
 # ── CONFIG — Change these to match your GitHub repo ──────────────────────────
-GITHUB_OWNER = "YOUR_GITHUB_USERNAME"   # e.g. "johndoe"
+GITHUB_OWNER = "Nex-Gen-Dev"   # e.g. "johndoe"
 GITHUB_REPO  = "streamripper"           # your repo name
 CURRENT_VERSION = "1.0.0"              # bump this on every release
 # ─────────────────────────────────────────────────────────────────────────────
