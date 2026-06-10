@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>StreamRipper — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#04060c;--bg2:#080c14;--bg3:#0c1020;--bg4:#111828;
+  --cyan:#00f5ff;--pink:#ff2d78;--green:#00ff88;--red:#ff3355;--gold:#ffd700;--orange:#ff7c00;
+  --text:#e2e8f8;--text2:#6b7a99;--text3:#2d3650;
+  --fh:'Orbitron',monospace;--fb:'Rajdhani',sans-serif;--fm:'Share Tech Mono',monospace;
+}
+body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100vh;overflow-x:hidden}
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:2rem}
+.login-logo{font-family:var(--fh);font-size:2rem;font-weight:900;color:#fff;letter-spacing:0.1em}
+.login-logo span{color:var(--cyan)}
+.login-box{background:var(--bg2);border:1px solid rgba(0,245,255,0.2);border-radius:14px;padding:2rem;width:min(400px,90vw)}
+.login-box h2{font-family:var(--fh);font-size:0.9rem;letter-spacing:0.1em;color:var(--cyan);margin-bottom:1.5rem}
+.lfield{display:flex;flex-direction:column;gap:0.4rem;margin-bottom:1rem}
+.lfield label{font-family:var(--fm);font-size:0.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em}
+.lfield input{background:var(--bg);border:1px solid rgba(0,245,255,0.2);color:var(--text);font-family:var(--fm);font-size:0.85rem;padding:0.7rem 0.9rem;border-radius:7px;outline:none;width:100%}
+.lfield input:focus{border-color:var(--cyan)}
+.login-btn{width:100%;background:var(--cyan);color:#000;font-family:var(--fh);font-weight:700;font-size:0.75rem;letter-spacing:0.1em;padding:0.85rem;border:none;border-radius:8px;cursor:pointer;margin-top:0.5rem}
+.login-err{color:var(--red);font-family:var(--fm);font-size:0.8rem;margin-top:0.5rem;display:none}
+/* LAYOUT */
+#app{display:none}
+.topbar{background:rgba(4,6,12,0.95);border-bottom:1px solid rgba(0,245,255,0.1);padding:0 2rem;height:58px;display:flex;align-items:center;gap:1.5rem;position:sticky;top:0;z-index:100}
+.tb-logo{font-family:var(--fh);font-size:0.9rem;font-weight:900;color:#fff;letter-spacing:0.08em}
+.tb-logo span{color:var(--cyan)}
+.tb-badge{font-family:var(--fm);font-size:0.6rem;background:rgba(255,45,120,0.2);border:1px solid var(--pink);color:var(--pink);padding:0.15rem 0.5rem;border-radius:4px;margin-left:0.5rem}
+.tb-nav{display:flex;gap:0.25rem;flex:1}
+.tnav{background:transparent;border:none;color:var(--text2);font-family:var(--fb);font-size:0.88rem;font-weight:600;padding:0.5rem 1rem;border-radius:6px;cursor:pointer;transition:all 0.15s}
+.tnav:hover{color:var(--text);background:rgba(255,255,255,0.04)}
+.tnav.active{color:var(--cyan);background:rgba(0,245,255,0.08)}
+.logout-btn{margin-left:auto;background:transparent;border:1px solid rgba(255,51,85,0.3);color:var(--red);font-family:var(--fm);font-size:0.75rem;padding:0.4rem 0.9rem;border-radius:6px;cursor:pointer}
+.content{padding:2rem;max-width:1400px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+/* STAT CARDS */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:2rem}
+.stat-card{background:var(--bg2);border:1px solid rgba(0,245,255,0.1);border-radius:10px;padding:1.2rem;text-align:center}
+.stat-card .num{font-family:var(--fh);font-size:2rem;font-weight:900;color:var(--cyan);line-height:1}
+.stat-card .lbl{font-family:var(--fm);font-size:0.7rem;color:var(--text2);margin-top:0.4rem;text-transform:uppercase;letter-spacing:0.08em}
+/* SECTION TITLE */
+.sec-title{font-family:var(--fh);font-size:1.2rem;font-weight:700;letter-spacing:0.05em;margin-bottom:1rem;color:#fff}
+.sec-title span{color:var(--cyan)}
+/* TABLE */
+.tbl-wrap{background:var(--bg2);border:1px solid rgba(0,245,255,0.1);border-radius:10px;overflow:hidden;margin-bottom:2rem}
+table{width:100%;border-collapse:collapse}
+th{font-family:var(--fm);font-size:0.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em;padding:0.75rem 1rem;text-align:left;border-bottom:1px solid rgba(0,245,255,0.08);background:var(--bg3)}
+td{font-family:var(--fm);font-size:0.78rem;padding:0.7rem 1rem;border-bottom:1px solid rgba(0,245,255,0.05);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(0,245,255,0.02)}
+.ban-btn{background:rgba(255,51,85,0.1);border:1px solid rgba(255,51,85,0.3);color:var(--red);font-family:var(--fm);font-size:0.68rem;padding:0.25rem 0.6rem;border-radius:4px;cursor:pointer}
+.ban-btn:hover{background:rgba(255,51,85,0.25)}
+/* OS BADGE */
+.os-badge{font-size:0.68rem;padding:0.15rem 0.5rem;border-radius:4px;font-family:var(--fm)}
+.os-win{background:rgba(0,120,212,0.2);color:#5eb3ff}
+.os-mac{background:rgba(255,255,255,0.1);color:#ddd}
+.os-lin{background:rgba(255,124,0,0.15);color:var(--orange)}
+.os-and{background:rgba(0,255,136,0.1);color:var(--green)}
+/* EVENT CHIPS */
+.evt-chip{font-size:0.68rem;padding:0.15rem 0.5rem;border-radius:4px;font-family:var(--fm)}
+.evt-login{background:rgba(0,245,255,0.1);color:var(--cyan)}
+.evt-register{background:rgba(0,255,136,0.1);color:var(--green)}
+.evt-download{background:rgba(255,215,0,0.1);color:var(--gold)}
+.evt-search{background:rgba(255,45,120,0.1);color:var(--pink)}
+.evt-other{background:rgba(74,80,104,0.4);color:var(--text2)}
+/* ADS */
+.ad-builder{background:var(--bg2);border:1px solid rgba(0,245,255,0.1);border-radius:12px;padding:1.5rem;max-width:700px;margin-bottom:2rem}
+.ad-builder h3{font-family:var(--fh);font-size:0.85rem;letter-spacing:0.08em;color:var(--cyan);margin-bottom:1.2rem}
+.field-row{display:flex;gap:1rem;flex-wrap:wrap}
+.field-group{display:flex;flex-direction:column;gap:0.4rem;flex:1;min-width:160px;margin-bottom:0.9rem}
+.field-group label{font-family:var(--fm);font-size:0.68rem;color:var(--text2);text-transform:uppercase;letter-spacing:0.1em}
+.field-group input,.field-group select,.field-group textarea{background:var(--bg);border:1px solid rgba(0,245,255,0.15);color:var(--text);font-family:var(--fm);font-size:0.82rem;padding:0.6rem 0.8rem;border-radius:7px;outline:none;width:100%}
+.field-group input:focus,.field-group select:focus,.field-group textarea:focus{border-color:var(--cyan)}
+.ad-preview{background:var(--bg3);border:1px solid rgba(0,245,255,0.15);border-radius:8px;padding:1rem;margin-bottom:1rem;display:none}
+.ad-preview.show{display:block}
+.ad-preview-banner{border-left:3px solid var(--cyan);padding-left:1rem}
+.ad-preview-popup{background:rgba(0,0,0,0.5);border-radius:10px;padding:1.5rem;text-align:center;max-width:350px;margin:0 auto;border:1px solid rgba(0,245,255,0.3)}
+.btn-primary{background:var(--cyan);color:#000;font-family:var(--fh);font-weight:700;font-size:0.75rem;letter-spacing:0.08em;padding:0.75rem 1.5rem;border:none;border-radius:8px;cursor:pointer}
+.btn-danger{background:transparent;border:1px solid rgba(255,51,85,0.4);color:var(--red);font-family:var(--fm);font-size:0.78rem;padding:0.6rem 1.2rem;border-radius:7px;cursor:pointer;margin-left:0.5rem}
+.current-ad-box{background:var(--bg2);border:1px solid rgba(0,255,136,0.2);border-radius:10px;padding:1rem;margin-bottom:2rem}
+.current-ad-box h4{font-family:var(--fm);font-size:0.7rem;color:var(--green);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:0.5rem}
+/* SEARCH/FILTER */
+.filter-row{display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.filter-input{background:var(--bg2);border:1px solid rgba(0,245,255,0.15);color:var(--text);font-family:var(--fm);font-size:0.82rem;padding:0.55rem 0.9rem;border-radius:7px;outline:none;min-width:200px}
+.filter-input:focus{border-color:var(--cyan)}
+.filter-sel{background:var(--bg2);border:1px solid rgba(0,245,255,0.15);color:var(--text);font-family:var(--fm);font-size:0.82rem;padding:0.55rem 0.8rem;border-radius:7px;outline:none;cursor:pointer}
+/* TOAST */
+#toasts{position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;display:flex;flex-direction:column;gap:0.5rem}
+.toast{background:var(--bg2);border:1px solid rgba(0,245,255,0.2);border-left:3px solid var(--cyan);padding:0.75rem 1.1rem;border-radius:7px;font-family:var(--fm);font-size:0.8rem;animation:toastIn 0.2s ease;max-width:300px}
+.toast.success{border-left-color:var(--green)}.toast.error{border-left-color:var(--red)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.refresh-btn{font-family:var(--fm);font-size:0.75rem;background:transparent;border:1px solid rgba(0,245,255,0.2);color:var(--cyan);padding:0.4rem 0.8rem;border-radius:6px;cursor:pointer;margin-left:auto}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-logo">STREAM<span>RIPPER</span> <small style="font-size:0.5em;color:var(--text2)">ADMIN</small></div>
+  <div class="login-box">
+    <h2>ADMIN LOGIN</h2>
+    <div class="lfield"><label>Admin Token</label><input type="password" id="admin-token" placeholder="Your admin token"/></div>
+    <div class="login-err" id="login-err">Invalid token</div>
+    <button class="login-btn" onclick="doLogin()">ACCESS DASHBOARD</button>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="app">
+  <div class="topbar">
+    <div class="tb-logo">STREAM<span>RIPPER</span> <span class="tb-badge">ADMIN</span></div>
+    <nav class="tb-nav">
+      <button class="tnav active" onclick="switchTab('overview')">Overview</button>
+      <button class="tnav" onclick="switchTab('users')">Users</button>
+      <button class="tnav" onclick="switchTab('events')">Events</button>
+      <button class="tnav" onclick="switchTab('ads')">Ads &amp; Popups</button>
+    </nav>
+    <button class="logout-btn" onclick="doLogout()">Logout</button>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW -->
+    <div class="panel active" id="tab-overview">
+      <div class="stat-grid" id="stat-grid">
+        <div class="stat-card"><div class="num" id="st-users">—</div><div class="lbl">Total Users</div></div>
+        <div class="stat-card"><div class="num" id="st-downloads">—</div><div class="lbl">Downloads</div></div>
+        <div class="stat-card"><div class="num" id="st-logins">—</div><div class="lbl">Logins</div></div>
+        <div class="stat-card"><div class="num" id="st-searches">—</div><div class="lbl">Searches</div></div>
+        <div class="stat-card"><div class="num" id="st-ips">—</div><div class="lbl">Unique IPs</div></div>
+        <div class="stat-card"><div class="num" id="st-reg">—</div><div class="lbl">New Signups</div></div>
+      </div>
+      <div class="sec-title">OS <span>Breakdown</span></div>
+      <div class="stat-grid" id="os-grid"></div>
+      <div class="sec-title">Recent <span>Activity</span></div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Time</th><th>Event</th><th>Email</th><th>IP</th><th>OS</th></tr></thead>
+        <tbody id="recent-events"></tbody>
+      </table></div>
+    </div>
+
+    <!-- USERS -->
+    <div class="panel" id="tab-users">
+      <div class="filter-row">
+        <div class="sec-title" style="margin:0">All <span>Users</span></div>
+        <input class="filter-input" id="user-search" placeholder="Filter by email or IP…" oninput="filterUsers()"/>
+        <button class="refresh-btn" onclick="loadUsers()">↺ Refresh</button>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Email</th><th>Name</th><th>IP</th><th>OS</th><th>Joined</th><th>Last Seen</th><th>Logins</th><th>Downloads</th><th>Action</th></tr></thead>
+        <tbody id="users-table"></tbody>
+      </table></div>
+    </div>
+
+    <!-- EVENTS -->
+    <div class="panel" id="tab-events">
+      <div class="filter-row">
+        <div class="sec-title" style="margin:0">Event <span>Log</span></div>
+        <select class="filter-sel" id="evt-filter" onchange="loadEvents()">
+          <option value="">All Events</option>
+          <option value="login">Login</option>
+          <option value="register">Register</option>
+          <option value="download_complete">Download</option>
+          <option value="search">Search</option>
+        </select>
+        <button class="refresh-btn" onclick="loadEvents()">↺ Refresh</button>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr><th>Time</th><th>Type</th><th>Email</th><th>IP</th><th>UA / Detail</th></tr></thead>
+        <tbody id="events-table"></tbody>
+      </table></div>
+    </div>
+
+    <!-- ADS -->
+    <div class="panel" id="tab-ads">
+      <div class="sec-title">Active <span>Ad</span></div>
+      <div class="current-ad-box" id="current-ad-box">Loading…</div>
+
+      <div class="sec-title">Broadcast <span>New Ad / Popup</span></div>
+      <div class="ad-builder">
+        <h3>AD BUILDER</h3>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Type</label>
+            <select id="ad-type" onchange="previewAd()">
+              <option value="banner">Banner (top of app)</option>
+              <option value="popup">Popup Modal</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Target OS</label>
+            <select id="ad-os">
+              <option value="all">All Platforms</option>
+              <option value="Windows">Windows Only</option>
+              <option value="macOS">macOS Only</option>
+              <option value="Linux">Linux Only</option>
+              <option value="Android">Android Only</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>Title</label>
+            <input type="text" id="ad-title" placeholder="e.g. Premium Available!" oninput="previewAd()"/>
+          </div>
+          <div class="field-group">
+            <label>Accent Color</label>
+            <input type="color" id="ad-color" value="#00f5ff" oninput="previewAd()"/>
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Message</label>
+          <textarea id="ad-message" rows="2" placeholder="Your message here…" oninput="previewAd()"></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field-group">
+            <label>CTA Button Text</label>
+            <input type="text" id="ad-cta" placeholder="e.g. Learn More" oninput="previewAd()"/>
+          </div>
+          <div class="field-group">
+            <label>CTA URL</label>
+            <input type="text" id="ad-url" placeholder="https://…"/>
+          </div>
+          <div class="field-group">
+            <label>Expires At (optional)</label>
+            <input type="datetime-local" id="ad-expires"/>
+          </div>
+        </div>
+
+        <div class="ad-preview" id="ad-preview"></div>
+        <button class="btn-primary" onclick="broadcastAd()">📡 Broadcast to All Users</button>
+        <button class="btn-danger" onclick="clearAd()">✕ Clear Current Ad</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+const WORKER = "https://streamripper-worker.YOUR_SUBDOMAIN.workers.dev"; // update this
+let adminToken = "";
+let allUsers   = [];
+
+function doLogin(){
+  const tok = document.getElementById("admin-token").value.trim();
+  if(!tok){ document.getElementById("login-err").style.display="block"; return; }
+  adminToken = tok;
+  // Verify by hitting the stats endpoint
+  apiFetch("/api/admin/stats").then(d=>{
+    if(d.error){ document.getElementById("login-err").style.display="block"; adminToken=""; return; }
+    document.getElementById("login-screen").style.display="none";
+    document.getElementById("app").style.display="block";
+    loadOverview(); loadUsers(); loadCurrentAd();
+    setInterval(loadOverview, 30000);
+  });
+}
+
+function doLogout(){
+  adminToken="";
+  document.getElementById("login-screen").style.display="flex";
+  document.getElementById("app").style.display="none";
+}
+
+function switchTab(name){
+  document.querySelectorAll(".panel").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".tnav").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+name).classList.add("active");
+  event.target.classList.add("active");
+}
+
+async function apiFetch(path, opts={}){
+  const res = await fetch(WORKER+path, {
+    ...opts,
+    headers:{"Content-Type":"application/json","X-Admin-Token":adminToken,...(opts.headers||{})},
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  return res.json();
+}
+
+async function loadOverview(){
+  const d = await apiFetch("/api/admin/stats");
+  if(d.error) return;
+  document.getElementById("st-users").textContent     = d.totalUsers   || 0;
+  document.getElementById("st-downloads").textContent = d.downloads    || 0;
+  document.getElementById("st-logins").textContent    = d.logins       || 0;
+  document.getElementById("st-searches").textContent  = d.searches     || 0;
+  document.getElementById("st-ips").textContent       = d.uniqueIps    || 0;
+  document.getElementById("st-reg").textContent       = d.registers    || 0;
+  // OS breakdown
+  const ogrid = document.getElementById("os-grid");
+  ogrid.innerHTML = "";
+  Object.entries(d.osCounts||{}).sort((a,b)=>b[1]-a[1]).forEach(([os,count])=>{
+    ogrid.innerHTML += `<div class="stat-card"><div class="num">${count}</div><div class="lbl">${os}</div></div>`;
+  });
+  // Recent events
+  const ed = await apiFetch("/api/admin/events?limit=20");
+  const tbody = document.getElementById("recent-events");
+  tbody.innerHTML = (ed.events||[]).map(e=>`
+    <tr>
+      <td>${new Date(e.ts).toLocaleString()}</td>
+      <td><span class="evt-chip evt-${e.type}">${e.type}</span></td>
+      <td>${e.email||"—"}</td>
+      <td>${e.ip||"—"}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${osLabel(e.os||"")||e.ua?.slice(0,40)||"—"}</td>
+    </tr>`).join("");
+}
+
+async function loadUsers(){
+  const d = await apiFetch("/api/admin/users");
+  allUsers = d.users || [];
+  renderUsers(allUsers);
+}
+function filterUsers(){
+  const q = document.getElementById("user-search").value.toLowerCase();
+  renderUsers(allUsers.filter(u=>(u.email+u.ip+u.name).toLowerCase().includes(q)));
+}
+function renderUsers(users){
+  document.getElementById("users-table").innerHTML = users.map(u=>`
+    <tr>
+      <td>${u.email}</td>
+      <td>${u.name||"—"}</td>
+      <td>${u.ip||"—"}</td>
+      <td>${osLabel(u.os||"")}</td>
+      <td>${u.createdAt?new Date(u.createdAt).toLocaleDateString():"—"}</td>
+      <td>${u.lastSeen?new Date(u.lastSeen).toLocaleDateString():"—"}</td>
+      <td>${u.loginCount||0}</td>
+      <td>${u.downloads||0}</td>
+      <td><button class="ban-btn" onclick="banUser('${u.email}')">Ban</button></td>
+    </tr>`).join("");
+}
+async function banUser(email){
+  if(!confirm(`Ban ${email}?`)) return;
+  await apiFetch(`/api/admin/users/${encodeURIComponent(email)}`,{method:"DELETE"});
+  toast(`${email} banned`,"success"); loadUsers();
+}
+
+async function loadEvents(){
+  const filter = document.getElementById("evt-filter").value;
+  const d      = await apiFetch(`/api/admin/events?limit=100&type=${filter}`);
+  document.getElementById("events-table").innerHTML = (d.events||[]).map(e=>`
+    <tr>
+      <td>${new Date(e.ts).toLocaleString()}</td>
+      <td><span class="evt-chip evt-${e.type}">${e.type}</span></td>
+      <td>${e.email||"—"}</td>
+      <td>${e.ip||"—"}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.title||e.query||e.ua?.slice(0,60)||"—"}</td>
+    </tr>`).join("");
+}
+
+async function loadCurrentAd(){
+  const d = await apiFetch("/api/admin/stats").catch(()=>({}));
+  const a = await fetch(WORKER+"/api/ads/current").then(r=>r.json()).catch(()=>({ad:null}));
+  const box = document.getElementById("current-ad-box");
+  if(a.ad){
+    box.innerHTML = `<h4>ACTIVE AD — ${a.ad.type.toUpperCase()}</h4>
+      <strong>${a.ad.title}</strong><br/>
+      <span style="color:var(--text2);font-family:var(--fm);font-size:0.8rem">${a.ad.message}</span><br/>
+      <span style="font-family:var(--fm);font-size:0.72rem;color:var(--text2)">
+        Target: ${a.ad.targetOs} · Expires: ${a.ad.expiresAt?new Date(a.ad.expiresAt).toLocaleString():"Never"}
+      </span>`;
+  } else {
+    box.innerHTML = `<span style="font-family:var(--fm);font-size:0.82rem;color:var(--text2)">No active ad</span>`;
+  }
+}
+
+function previewAd(){
+  const type  = document.getElementById("ad-type").value;
+  const title = document.getElementById("ad-title").value || "Ad Title";
+  const msg   = document.getElementById("ad-message").value || "Ad message here";
+  const cta   = document.getElementById("ad-cta").value || "Click here";
+  const color = document.getElementById("ad-color").value;
+  const prev  = document.getElementById("ad-preview");
+  prev.className = "ad-preview show";
+  if(type==="banner"){
+    prev.innerHTML=`<div class="ad-preview-banner" style="border-left-color:${color}">
+      <strong style="color:${color}">${title}</strong><span style="margin-left:0.75rem;font-family:var(--fm);font-size:0.8rem;color:#ccc">${msg}</span>
+      ${cta?`<button style="margin-left:1rem;background:${color};color:#000;border:none;padding:0.3rem 0.7rem;border-radius:4px;font-size:0.75rem;cursor:pointer">${cta}</button>`:""}
+    </div>`;
+  } else {
+    prev.innerHTML=`<div class="ad-preview-popup">
+      <strong style="font-family:var(--fh);font-size:0.9rem;color:${color}">${title}</strong>
+      <p style="margin:0.75rem 0;font-family:var(--fm);font-size:0.82rem;color:#ccc">${msg}</p>
+      ${cta?`<button style="background:${color};color:#000;border:none;padding:0.5rem 1.2rem;border-radius:6px;font-weight:700;cursor:pointer">${cta}</button>`:""}
+    </div>`;
+  }
+}
+
+async function broadcastAd(){
+  const body = {
+    type:      document.getElementById("ad-type").value,
+    title:     document.getElementById("ad-title").value,
+    message:   document.getElementById("ad-message").value,
+    cta:       document.getElementById("ad-cta").value,
+    ctaUrl:    document.getElementById("ad-url").value,
+    bgColor:   document.getElementById("ad-color").value,
+    expiresAt: document.getElementById("ad-expires").value || null,
+    targetOs:  document.getElementById("ad-os").value,
+  };
+  const d = await apiFetch("/api/admin/ads",{method:"POST",body});
+  if(d.ok){ toast("Ad broadcast to all users!","success"); loadCurrentAd(); }
+  else toast("Error: "+d.error,"error");
+}
+async function clearAd(){
+  await apiFetch("/api/admin/ads",{method:"DELETE"});
+  toast("Ad cleared","success"); loadCurrentAd();
+}
+
+function osLabel(os){
+  if(!os) return "";
+  const cls = os.toLowerCase().includes("win")?"os-win":os.toLowerCase().includes("mac")?"os-mac":os.toLowerCase().includes("android")?"os-and":"os-lin";
+  return `<span class="os-badge ${cls}">${os}</span>`;
+}
+function toast(msg,type="info"){
+  const w=document.getElementById("toasts");
+  const el=document.createElement("div");
+  el.className=`toast ${type}`;el.textContent=msg;
+  w.appendChild(el);setTimeout(()=>el.remove(),4000);
+}
+</script>
+</body>
+</html>
